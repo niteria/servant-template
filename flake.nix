@@ -3,7 +3,7 @@
 
   inputs = {
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
-    nixpkgs.url = "nixpkgs/nixos-unstable";
+    nixpkgs.url = "nixpkgs/nixos-23.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -14,32 +14,26 @@
         pkgs = nixpkgs.legacyPackages.${system};
         haskellPackages = pkgs.haskellPackages.override {
           overrides = self: super: rec {
-            openapi3 =
-              pkgs.lib.pipe super.openapi3
-                [
-                  pkgs.haskell.lib.unmarkBroken
-                  pkgs.haskell.lib.dontCheck
-                ];
+            openapi3 = pkgs.lib.pipe super.openapi3 [
+              pkgs.haskell.lib.unmarkBroken
+              pkgs.haskell.lib.dontCheck
+            ];
           };
         };
-      in
-      {
+      in {
         defaultPackage = self.packages.${system}.${packageName};
         packages.${packageName} =
           haskellPackages.callCabal2nix packageName self rec {
             servant-auth-server =
-              pkgs.lib.pipe haskellPackages.servant-auth-server
-                [
-                  pkgs.haskell.lib.unmarkBroken
-                  pkgs.haskell.lib.dontCheck
-                ];
+              pkgs.lib.pipe haskellPackages.servant-auth-server [
+                pkgs.haskell.lib.unmarkBroken
+                pkgs.haskell.lib.dontCheck
+              ];
 
-            tomland =
-              pkgs.lib.pipe haskellPackages.tomland
-                [
-                  pkgs.haskell.lib.doJailbreak
-                  pkgs.haskell.lib.dontCheck
-                ];
+            tomland = pkgs.lib.pipe haskellPackages.tomland [
+              pkgs.haskell.lib.doJailbreak
+              pkgs.haskell.lib.dontCheck
+            ];
           };
 
         checks = {
@@ -48,8 +42,8 @@
             hooks = {
               hlint.enable = true;
               hpack.enable = true;
-              ormolu.enable = true;
-              nixpkgs-fmt.enable = true;
+              hindent.enable = true;
+              nixfmt.enable = true;
             };
           };
         };
