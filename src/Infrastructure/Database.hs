@@ -1,12 +1,11 @@
 module Infrastructure.Database
-  ( Config (..),
-    Handle,
-    withHandle,
-    runQuery,
-  )
-where
+  ( Config(..)
+  , Handle
+  , withHandle
+  , runQuery
+  ) where
 
-import API.Config qualified as AppConfig
+import qualified API.Config as AppConfig
 import Control.Exception (bracket)
 import Data.ByteString.Char8 (ByteString, unpack)
 import Data.Maybe (fromMaybe)
@@ -30,19 +29,14 @@ new config = do
     eConn
 
 parseConfig :: AppConfig.Config -> Config
-parseConfig =
-  Config . (AppConfig.connectionString . AppConfig.database)
+parseConfig = Config . (AppConfig.connectionString . AppConfig.database)
 
 close :: Handle -> IO ()
 close = release . dbConnection
 
 withHandle :: AppConfig.Config -> (Handle -> IO a) -> IO a
 withHandle config f = do
-  bracket
-    (new . parseConfig $ config)
-    close
-    f
+  bracket (new . parseConfig $ config) close f
 
 runQuery :: Handle -> Session a -> IO (Either QueryError a)
-runQuery handle query =
-  run query (dbConnection handle)
+runQuery handle query = run query (dbConnection handle)

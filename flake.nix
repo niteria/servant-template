@@ -20,6 +20,7 @@
             ];
           };
         };
+        hindent = haskellPackages.hindent.bin;
       in {
         defaultPackage = self.packages.${system}.${packageName};
         packages.${packageName} =
@@ -43,6 +44,7 @@
               hlint.enable = true;
               hpack.enable = true;
               hindent.enable = true;
+              hindent.package = hindent;
               nixfmt.enable = true;
             };
           };
@@ -62,7 +64,7 @@
             haskellPackages.ghcid
             haskellPackages.haskell-language-server
             haskellPackages.hspec-discover
-            haskellPackages.ormolu
+            hindent
             hpack
             jq
             nodejs

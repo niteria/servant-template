@@ -1,21 +1,20 @@
 module Infrastructure.Logging.Logger
-  ( Handle,
-    withHandle,
-    withContext,
-    logError,
-    logInfo,
-    logWarning,
-    logDebug,
-  )
-where
+  ( Handle
+  , withHandle
+  , withContext
+  , logError
+  , logInfo
+  , logWarning
+  , logDebug
+  ) where
 
-import Colog.Core (Severity (..), logStringStderr, logStringStdout, (<&))
+import Colog.Core (Severity(..), (<&), logStringStderr, logStringStdout)
 import Control.Exception (bracket)
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Text (Text)
 import Infrastructure.SystemTime (UTCTime)
-import Infrastructure.SystemTime qualified as SystemTime
+import qualified Infrastructure.SystemTime as SystemTime
 import Prelude hiding (log)
 
 newtype Config = Config
@@ -23,9 +22,9 @@ newtype Config = Config
   }
 
 data Handle = Handle
-  { systemTimeHandle :: SystemTime.Handle,
-    localContext :: Maybe Context,
-    minLevel :: Severity
+  { systemTimeHandle :: SystemTime.Handle
+  , localContext :: Maybe Context
+  , minLevel :: Severity
   }
 
 type Context = Text
@@ -34,10 +33,7 @@ type Context = Text
 -- Uses dependencies to yield a handle
 withHandle :: SystemTime.Handle -> (Handle -> IO a) -> IO a
 withHandle timeHandle f = do
-  bracket
-    (new parseConfig timeHandle)
-    close
-    f
+  bracket (new parseConfig timeHandle) close f
 
 -- |
 -- Returns new handle that logs within a specific context.
@@ -76,10 +72,8 @@ log level handle msg = do
   where
     logAction =
       case level of
-        Error ->
-          logStringStderr
-        _ ->
-          logStringStdout
+        Error -> logStringStderr
+        _ -> logStringStdout
 
 -- |
 -- Creates new handle
@@ -87,9 +81,9 @@ new :: Config -> SystemTime.Handle -> IO Handle
 new config timeHandle = do
   pure $
     Handle
-      { systemTimeHandle = timeHandle,
-        localContext = Nothing,
-        minLevel = logLevel config
+      { systemTimeHandle = timeHandle
+      , localContext = Nothing
+      , minLevel = logLevel config
       }
 
 -- |
@@ -102,7 +96,8 @@ close = const $ pure ()
 parseConfig :: Config
 parseConfig = Config Info
 
-newtype Unquoted = Unquoted String
+newtype Unquoted =
+  Unquoted String
 
 instance Show Unquoted where
   show (Unquoted str) = str
@@ -116,5 +111,4 @@ format :: UTCTime -> Severity -> Maybe Context -> String -> String
 format time severity ctx msg =
   withBrackets severity <> withBrackets time <> maybe "" withBrackets ctx <> msg
   where
-    withBrackets s =
-      "[" <> show s <> "] "
+    withBrackets s = "[" <> show s <> "] "

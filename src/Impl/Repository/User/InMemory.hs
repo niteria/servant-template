@@ -1,4 +1,7 @@
-module Impl.Repository.User.InMemory (Table, repository) where
+module Impl.Repository.User.InMemory
+  ( Table
+  , repository
+  ) where
 
 import Control.Monad.Except (throwError)
 import Control.Monad.IO.Class (liftIO)
@@ -8,26 +11,29 @@ import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Data.UUID.V4 (nextRandom)
 import GHC.Conc (TVar, atomically, readTVar, readTVarIO, writeTVar)
-import Hasql.Session (CommandError (ResultError), QueryError (QueryError), ResultError (ServerError))
-import Impl.Repository.User.Error (UserRepositoryError (..))
-import Infrastructure.Persistence.Queries (WrongNumberOfResults (..))
+import Hasql.Session
+  ( CommandError(ResultError)
+  , QueryError(QueryError)
+  , ResultError(ServerError)
+  )
+import Impl.Repository.User.Error (UserRepositoryError(..))
+import Infrastructure.Persistence.Queries (WrongNumberOfResults(..))
 import PostgreSQL.ErrorCodes (unique_violation)
-import Tagger.EncryptedPassword (EncryptedPassword)
-import Tagger.Id (Id (Id))
-import Tagger.Repository.User (UserRepository (..))
-import Tagger.User (User (..))
 import Prelude hiding (filter)
+import Tagger.EncryptedPassword (EncryptedPassword)
+import Tagger.Id (Id(Id))
+import Tagger.Repository.User (UserRepository(..))
+import Tagger.User (User(..))
 
 type Table = TVar (Map (Id User) User)
 
 repository :: Table -> UserRepository (ExceptT UserRepositoryError IO)
 repository userMap =
   UserRepository
-    { findByName = inMemoryGetUserByName userMap,
-      add = inMemoryAddUser userMap
-    }
+    {findByName = inMemoryGetUserByName userMap, add = inMemoryAddUser userMap}
 
-inMemoryGetUserByName :: Table -> Text -> ExceptT UserRepositoryError IO (Id User, User)
+inMemoryGetUserByName ::
+     Table -> Text -> ExceptT UserRepositoryError IO (Id User, User)
 inMemoryGetUserByName userMap name' = do
   users <- liftIO $ readTVarIO userMap
   let usersWithName = filter ((== name') . name) users
@@ -39,27 +45,32 @@ inMemoryGetUserByName userMap name' = do
 duplicateNameError :: Text -> UserRepositoryError
 duplicateNameError name' =
   DuplicateUserName $
-    QueryError
-      "insert user"
-      []
-      ( ResultError $
-          ServerError
-            unique_violation
-            "duplicate key value violates unique constraint"
-            (Just $ "Key (name)=(" <> encodeUtf8 name' <> ") already exists")
-            Nothing
-            Nothing
-      )
+  QueryError
+    "insert user"
+    []
+    (ResultError $
+     ServerError
+       unique_violation
+       "duplicate key value violates unique constraint"
+       (Just $ "Key (name)=(" <> encodeUtf8 name' <> ") already exists")
+       Nothing
+       Nothing)
 
-inMemoryAddUser :: Table -> Text -> EncryptedPassword -> ExceptT UserRepositoryError IO (Id User)
+inMemoryAddUser ::
+     Table
+  -> Text
+  -> EncryptedPassword
+  -> ExceptT UserRepositoryError IO (Id User)
 inMemoryAddUser userMap name' password' = do
   userId <- Id <$> liftIO nextRandom
-  queryError <- liftIO . atomically $ do
-    users <- readTVar userMap
-    let usersWithName = filter ((== name') . name) users
-    if null usersWithName
-      then writeTVar userMap (insert userId (User name' password') users) >> pure Nothing
-      else pure . Just $ duplicateNameError name'
+  queryError <-
+    liftIO . atomically $ do
+      users <- readTVar userMap
+      let usersWithName = filter ((== name') . name) users
+      if null usersWithName
+        then writeTVar userMap (insert userId (User name' password') users) >>
+             pure Nothing
+        else pure . Just $ duplicateNameError name'
   case queryError of
     Just qe -> throwError qe
     Nothing -> pure userId

@@ -1,4 +1,8 @@
-module Tagger.Content (Content (message, tags), createContent, hasAllTags) where
+module Tagger.Content
+  ( Content(message, tags)
+  , createContent
+  , hasAllTags
+  ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.List (nub)
@@ -9,10 +13,9 @@ import GHC.Generics (Generic)
 -- |
 -- A 'Content' is just a text indexed by a list of 'tag's
 data Content tag = Content
-  { message :: Text,
-    tags :: [tag]
-  }
-  deriving stock (Eq, Show, Functor, Generic)
+  { message :: Text
+  , tags :: [tag]
+  } deriving stock (Eq, Show, Functor, Generic)
 
 createContent :: (Eq tag) => Text -> [tag] -> Content tag
 createContent message tags = Content message (nub tags)

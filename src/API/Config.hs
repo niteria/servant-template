@@ -3,13 +3,13 @@ module API.Config where
 import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString.Char8 (ByteString, pack)
 import Data.Text (Text, unpack)
-import Toml (TomlCodec, decodeFileExact, diwrap, int, table, text, (.=))
+import Toml (TomlCodec, (.=), decodeFileExact, diwrap, int, table, text)
 
 -- |
 -- The whole config needed by the application
 data Config = Config
-  { database :: DatabaseConfig,
-    api :: ApiConfig
+  { database :: DatabaseConfig
+  , api :: ApiConfig
   }
 
 -- |
@@ -21,11 +21,11 @@ newtype ApiConfig = ApiConfig
 -- |
 -- The configuration parameters needed to connect to a database
 data DatabaseConfig = DatabaseConfig
-  { host :: Host,
-    port :: Port,
-    dbname :: DBName,
-    user :: User,
-    password :: Password
+  { host :: Host
+  , port :: Port
+  , dbname :: DBName
+  , user :: User
+  , password :: Password
   }
 
 -- |
@@ -33,54 +33,57 @@ data DatabaseConfig = DatabaseConfig
 load :: (MonadIO m, MonadFail m) => FilePath -> m Config
 load path = do
   eitherConfig <- decodeFileExact configCodec path
-  either (\errors -> fail $ "unable to parse configuration: " <> show errors) pure eitherConfig
+  either
+    (\errors -> fail $ "unable to parse configuration: " <> show errors)
+    pure
+    eitherConfig
 
-newtype Host = Host {getHost :: Text}
+newtype Host = Host
+  { getHost :: Text
+  }
 
-newtype Port = Port {getPort :: Int}
-  deriving newtype (Show)
+newtype Port = Port
+  { getPort :: Int
+  } deriving newtype (Show)
 
-newtype DBName = DBName {getDBName :: Text}
+newtype DBName = DBName
+  { getDBName :: Text
+  }
 
-newtype User = User {getUser :: Text}
+newtype User = User
+  { getUser :: Text
+  }
 
-newtype Password = Password {getPassword :: Text}
+newtype Password = Password
+  { getPassword :: Text
+  }
 
 -- |
 -- Compute the connection string given a 'DatabaseConfig'
 connectionString :: DatabaseConfig -> ByteString
 connectionString DatabaseConfig {host, port, dbname, user, password} =
   pack $
-    "host="
-      <> unpack (getHost host)
-      <> " "
-      <> "port="
-      <> show port
-      <> " "
-      <> "dbname="
-      <> unpack (getDBName dbname)
-      <> " "
-      <> "user="
-      <> unpack (getUser user)
-      <> " "
-      <> "password="
-      <> unpack (getPassword password)
+  "host=" <>
+  unpack (getHost host) <>
+  " " <>
+  "port=" <>
+  show port <>
+  " " <>
+  "dbname=" <>
+  unpack (getDBName dbname) <>
+  " " <>
+  "user=" <>
+  unpack (getUser user) <> " " <> "password=" <> unpack (getPassword password)
 
 -- |
 -- A bidirectional codec for 'DatabaseConfig'
 databaseConfigCodec :: TomlCodec DatabaseConfig
 databaseConfigCodec =
-  DatabaseConfig
-    <$> Toml.diwrap (Toml.text "host")
-      .= host
-    <*> Toml.diwrap (Toml.int "port")
-      .= port
-    <*> Toml.diwrap (Toml.text "dbname")
-      .= dbname
-    <*> Toml.diwrap (Toml.text "user")
-      .= user
-    <*> Toml.diwrap (Toml.text "password")
-      .= password
+  DatabaseConfig <$> Toml.diwrap (Toml.text "host") .= host <*>
+  Toml.diwrap (Toml.int "port") .= port <*>
+  Toml.diwrap (Toml.text "dbname") .= dbname <*>
+  Toml.diwrap (Toml.text "user") .= user <*>
+  Toml.diwrap (Toml.text "password") .= password
 
 -- |
 -- A bidirectional codec for 'ApiConfig'
@@ -91,8 +94,5 @@ apiConfigCodec = Toml.diwrap $ Toml.int "port"
 -- A bidirectional codec for 'Config'
 configCodec :: TomlCodec Config
 configCodec =
-  Config
-    <$> Toml.table databaseConfigCodec "database"
-      .= database
-    <*> Toml.table apiConfigCodec "api"
-      .= api
+  Config <$> Toml.table databaseConfigCodec "database" .= database <*>
+  Toml.table apiConfigCodec "api" .= api

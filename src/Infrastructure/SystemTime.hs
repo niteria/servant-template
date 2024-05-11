@@ -1,16 +1,16 @@
 module Infrastructure.SystemTime
-  ( Handle,
-    withHandle,
-    currentTime,
-    UTCTime,
-  )
-where
+  ( Handle
+  , withHandle
+  , currentTime
+  , UTCTime
+  ) where
 
 import Control.Exception (bracket)
-import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 
-data Handle = Handle
+data Handle =
+  Handle
 
 -- |
 -- Yields a handle
